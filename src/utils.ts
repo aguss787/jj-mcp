@@ -7,8 +7,7 @@ async function executeJjCommand(command: string): Promise<string> {
   try {
     const { stdout, stderr } = await exec(`jj ${command}`);
     if (stderr) {
-      console.error(`Jujutsu command error: ${stderr}`);
-      return `Error: ${stderr}`;
+      return `stdout: ${stdout}\nstderr: ${stderr}`;
     }
     return stdout;
   } catch (error: any) {

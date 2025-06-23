@@ -77,15 +77,16 @@ async function startJujutsuMcpServer() {
       title: "Jujutsu Commit",
       description: "Creates a new commit.",
       inputSchema: z.object({
-        message: z.string().default("chore: new commit").optional(),
+        message: z.string(),
       }).shape,
     },
     async (args) => {
-      const message = (args.message || "chore: new commit").replace(
-        /'/g,
-        "'\\''",
-      );
-      const result = await executeJjCommand(`commit -m '${message}'`);
+      let command = "commit";
+      if (args.message !== undefined && args.message !== null) {
+        const escapedMessage = args.message.replace(/'/g, "'\''");
+        command += ` -m '${escapedMessage}'`;
+      }
+      const result = await executeJjCommand(command);
       return { content: [{ type: "text", text: result }] };
     },
   );
@@ -96,7 +97,7 @@ async function startJujutsuMcpServer() {
       title: "Jujutsu Describe Commit",
       description: "Amends the description of the specified commit.",
       inputSchema: z.object({
-        message: z.string().optional(),
+        message: z.string().default(""),
         revision_id: z.string().optional(),
       }).shape,
     },
@@ -104,10 +105,8 @@ async function startJujutsuMcpServer() {
       const message = args.message;
       const revision_id = args.revision_id;
       let command = "describe";
-      if (message) {
-        const escapedMessage = message.replace(/'/g, "'\\''");
-        command += ` -m '${escapedMessage}'`;
-      }
+      const escapedMessage = message.replace(/'/g, "'\''");
+      command += ` -m '${escapedMessage}'`;
       if (revision_id) {
         command += ` -r "${revision_id}"`;
       }
