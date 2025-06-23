@@ -1,4 +1,4 @@
-import { executeJjCommand } from "../index"; // Import the function to be tested
+import { executeJjCommand } from "../utils"; // Import the function to be tested
 import { promisify } from "util";
 
 // This line ensures that child_process is mocked globally for this test file.

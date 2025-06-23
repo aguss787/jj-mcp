@@ -1,31 +1,10 @@
+import { z } from "zod";
 import {
   McpServer,
   ResourceTemplate,
 } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { exec as cp_exec } from "child_process";
-import { promisify } from "util";
-
-const exec = promisify(cp_exec);
-
-async function executeJjCommand(command: string): Promise<string> {
-  try {
-    const { stdout, stderr } = await exec(`jj ${command}`);
-    if (stderr) {
-      console.error(`Jujutsu command error: ${stderr}`);
-      return `Error: ${stderr}`;
-    }
-    return stdout;
-  } catch (error: any) {
-    console.error(
-      `Failed to execute Jujutsu command: ${command}, Error: ${error.message}`,
-    );
-    return `Error executing command: ${error.message}`;
-  }
-}
-
-// Temporarily export executeJjCommand for testing purposes
-export { executeJjCommand };
+import { executeJjCommand } from "./utils.js"; // Import from the new file
 
 async function startJujutsuMcpServer() {
   const server = new McpServer({
@@ -33,137 +12,160 @@ async function startJujutsuMcpServer() {
     version: "1.0.0", // Added missing version property
     description:
       "A Model Context Protocol server for interacting with Jujutsu version control.",
-    tools: [
-      {
-        name: "jj_status",
-        description:
-          "Shows the current state of the working copy and the repo.",
-        input_schema: {},
-        handler: async () => {
-          return { result: await executeJjCommand("status") };
-        },
-      },
-      {
-        name: "jj_log",
-        description: "Shows the commit history.",
-        input_schema: {
-          type: "object",
-          properties: {
-            limit: {
-              type: "number",
-              description: "Limit the number of commits shown.",
-            },
-            branch: {
-              type: "string",
-              description: "Show commits on a specific branch.",
-            },
-          },
-          additionalProperties: false,
-        },
-        handler: async (args: { limit?: number; branch?: string }) => {
-          let command = "log";
-          if (args.limit) {
-            command += ` -n ${args.limit}`;
-          }
-          if (args.branch) {
-            command += ` --branch=${args.branch}`;
-          }
-          return { result: await executeJjCommand(command) };
-        },
-      },
-      {
-        name: "jj_commit",
-        description: "Creates a new commit.",
-        input_schema: {
-          type: "object",
-          properties: {
-            message: {
-              type: "string",
-              description: "The commit message.",
-              default: "chore: new commit",
-            },
-          },
-          additionalProperties: false,
-        },
-        handler: async (args: { message?: string }) => {
-          const message = args.message || "chore: new commit";
-          return { result: await executeJjCommand(`commit -m "${message}"`) };
-        },
-      },
-      {
-        name: "jj_branch",
-        description: "Manage branches.",
-        input_schema: {
-          type: "object",
-          properties: {
-            action: {
-              type: "string",
-              enum: ["list", "create", "delete"],
-              description:
-                "Action to perform on branches (list, create, delete).",
-            },
-            name: {
-              type: "string",
-              description: "Branch name (required for create/delete actions).",
-            },
-          },
-          required: ["action"],
-          additionalProperties: false,
-        },
-        handler: async (args: {
-          action: "list" | "create" | "delete";
-          name?: string;
-        }) => {
-          let command: string;
-          switch (args.action) {
-            case "list":
-              command = "branch list";
-              break;
-            case "create":
-              if (!args.name)
-                return {
-                  result:
-                    "Error: Branch name is required for creating a branch.",
-                };
-              command = `branch create ${args.name}`;
-              break;
-            case "delete":
-              if (!args.name)
-                return {
-                  result:
-                    "Error: Branch name is required for deleting a branch.",
-                };
-              command = `branch delete ${args.name}`;
-              break;
-            default:
-              return { result: "Error: Invalid branch action." };
-          }
-          return { result: await executeJjCommand(command) };
-        },
-      },
-    ],
-    resources: [
-      {
-        uri: "jujutsu://info",
-        description: "General information about the Jujutsu repository.",
-        mime_type: "text/plain",
-        handler: async () => {
-          const status = await executeJjCommand("status");
-          const log = await executeJjCommand("log -n 5");
-          return `Jujutsu Repository Info:\n\nStatus:\n${status}\n\nRecent Log:\n${log}`;
-        },
-      },
-    ],
+    resources: [], // Removed resources from constructor
   });
 
+  server.registerResource(
+    "info",
+    "jujutsu://info",
+    {
+      title: "Jujutsu Info", // Added this line
+      description: "General information about the Jujutsu repository.",
+      mime_type: "text/plain",
+    },
+    async (uri: URL) => {
+      const status = await executeJjCommand("status");
+      const log = await executeJjCommand("log -n 5");
+      return {
+        contents: [
+          {
+            uri: uri.href,
+            type: "text",
+            text: `Jujutsu Repository Info:\n\nStatus:\n${status}\n\nRecent Log:\n${log}`,
+          },
+        ],
+      };
+    },
+  );
+
+  server.registerTool(
+    "jj_status",
+    {
+      title: "Jujutsu Status",
+      description: "Shows the current state of the working copy and the repo.",
+      inputSchema: z.object({}).shape,
+    },
+    async () => {
+      const result = await executeJjCommand("status");
+      return { content: [{ type: "text", text: result }] };
+    },
+  );
+
+  server.registerTool(
+    "jj_log",
+    {
+      title: "Jujutsu Log",
+      description: "Shows the commit history.",
+      inputSchema: z.object({
+        limit: z.number().optional(),
+        branch: z.string().optional(),
+      }).shape,
+    },
+    async (args) => {
+      let command = "log";
+      if (args.limit) {
+        command += ` -n ${args.limit}`;
+      }
+      if (args.branch) {
+        command += ` --branch=${args.branch}`;
+      }
+      const result = await executeJjCommand(command);
+      return { content: [{ type: "text", text: result }] };
+    },
+  );
+
+  server.registerTool(
+    "jj_commit",
+    {
+      title: "Jujutsu Commit",
+      description: "Creates a new commit.",
+      inputSchema: z.object({
+        message: z.string().default("chore: new commit").optional(),
+      }).shape,
+    },
+    async (args) => {
+      const message = args.message || "chore: new commit";
+      const result = await executeJjCommand(`commit -m "${message}"`);
+      return { content: [{ type: "text", text: result }] };
+    },
+  );
+
+  server.registerTool(
+    "jj_amend",
+    {
+      title: "Jujutsu Amend Commit",
+      description: "Amends the description of the current commit.",
+      inputSchema: z.object({
+        message: z.string().optional(),
+      }).shape,
+    },
+    async (args) => {
+      const message = args.message;
+      let command = "amend";
+      if (message) {
+        command += ` -m "${message}"`;
+      }
+      const result = await executeJjCommand(command);
+      return { content: [{ type: "text", text: result }] };
+    },
+  );
+
+  server.registerTool(
+    "jj_branch",
+    {
+      title: "Jujutsu Branch",
+      description: "Manage branches.",
+      inputSchema: z.object({
+        action: z.enum(["list", "create", "delete"]),
+        name: z.string().optional(),
+      }).shape,
+    },
+    async (args) => {
+      let command: string;
+      switch (args.action) {
+        case "list":
+          command = "branch list";
+          break;
+        case "create":
+          if (!args.name)
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: "Error: Branch name is required for creating a branch.",
+                },
+              ],
+            };
+          command = `branch create ${args.name}`;
+          break;
+        case "delete":
+          if (!args.name)
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: "Error: Branch name is required for deleting a branch.",
+                },
+              ],
+            };
+          command = `branch delete ${args.name}`;
+          break;
+        default:
+          return {
+            content: [{ type: "text", text: "Error: Invalid branch action." }],
+          };
+      }
+      const result = await executeJjCommand(command);
+      return { content: [{ type: "text", text: result }] };
+    },
+  );
+
   const transport = new StdioServerTransport();
-  server.connect(transport); // Changed from server.start() to server.connect()
+  server.connect(transport);
 
   console.error("Jujutsu MCP Server started.");
 }
 
 // IMPORTANT!
 // Only start the server if this script is run directly (not imported as a module)
-if (require.main === module) {
-  startJujutsuMcpServer();
-}
+startJujutsuMcpServer();
