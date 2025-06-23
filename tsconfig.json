@@ -9,10 +9,7 @@
     "strict": true,
     "skipLibCheck": true,
     "types": ["jest", "node"],
-    "baseUrl": ".",
-    "paths": {
-      "@modelcontextprotocol/sdk": ["node_modules/@modelcontextprotocol/sdk/dist/cjs"]
-    }
+    "baseUrl": "."
   },
   "include": ["src/**/*", "src/__tests__/**/*"],
   "exclude": ["dist"]

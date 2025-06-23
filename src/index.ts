@@ -1,4 +1,7 @@
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import {
+  McpServer,
+  ResourceTemplate,
+} from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { exec as cp_exec } from "child_process";
 import { promisify } from "util";
@@ -25,7 +28,7 @@ async function executeJjCommand(command: string): Promise<string> {
 export { executeJjCommand };
 
 async function startJujutsuMcpServer() {
-  const server = new Server({
+  const server = new McpServer({
     name: "jujutsu",
     version: "1.0.0", // Added missing version property
     description:
