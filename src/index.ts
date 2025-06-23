@@ -84,26 +84,35 @@ async function startJujutsuMcpServer() {
       }).shape,
     },
     async (args) => {
-      const message = args.message || "chore: new commit";
-      const result = await executeJjCommand(`commit -m "${message}"`);
+      const message = (args.message || "chore: new commit").replace(
+        /'/g,
+        "'\\''",
+      );
+      const result = await executeJjCommand(`commit -m '${message}'`);
       return { content: [{ type: "text", text: result }] };
     },
   );
 
   server.registerTool(
-    "jj_amend",
+    "jj_desc",
     {
-      title: "Jujutsu Amend Commit",
-      description: "Amends the description of the current commit.",
+      title: "Jujutsu Describe Commit",
+      description: "Amends the description of the specified commit.",
       inputSchema: z.object({
         message: z.string().optional(),
+        revision_id: z.string().optional(),
       }).shape,
     },
     async (args) => {
       const message = args.message;
-      let command = "amend";
+      const revision_id = args.revision_id;
+      let command = "describe";
       if (message) {
-        command += ` -m "${message}"`;
+        const escapedMessage = message.replace(/'/g, "'\\''");
+        command += ` -m '${escapedMessage}'`;
+      }
+      if (revision_id) {
+        command += ` -r "${revision_id}"`;
       }
       const result = await executeJjCommand(command);
       return { content: [{ type: "text", text: result }] };
@@ -156,6 +165,22 @@ async function startJujutsuMcpServer() {
           };
       }
       const result = await executeJjCommand(command);
+      return { content: [{ type: "text", text: result }] };
+    },
+  );
+
+  server.registerTool(
+    "jj_diff",
+    {
+      title: "Jujutsu Diff",
+      description: "Shows the diff of the specified revision.",
+      inputSchema: z.object({
+        revision_id: z.string().default("@"),
+      }).shape,
+    },
+    async (args) => {
+      const revision_id = args.revision_id;
+      const result = await executeJjCommand(`diff -r "${revision_id}"`);
       return { content: [{ type: "text", text: result }] };
     },
   );

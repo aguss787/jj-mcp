@@ -1,12 +1,12 @@
 {
   "name": "jujutsu-mcp-server",
   "version": "1.0.0",
-  "description": "An MCP server for interacting with Jujutsu version control",
+  "description": "An MCP server for interacting with Jujutsu version control - Updated by Gemini",
   "main": "dist/index.js",
   "scripts": {
     "start": "ts-node src/index.ts",
     "build": "tsc",
-    "test": "tsc && jest"
+    "test": "tsc 2>&1 && jest 2>&1"
   },
   "keywords": [],
   "author": "",
