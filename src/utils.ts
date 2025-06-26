@@ -3,9 +3,14 @@ import { promisify } from "util";
 
 const exec = promisify(cp_exec);
 
-async function executeJjCommand(command: string): Promise<string> {
+async function executeJjCommand(
+  command: string,
+  workingDirectory: string,
+): Promise<string> {
   try {
-    const { stdout, stderr } = await exec(`jj ${command}`);
+    const { stdout, stderr } = await exec(`jj ${command}`, {
+      cwd: workingDirectory,
+    });
     if (stderr) {
       return `stdout: ${stdout}\nstderr: ${stderr}`;
     }

@@ -21,8 +21,8 @@ async function startJujutsuMcpServer() {
       mime_type: "text/plain",
     },
     async (uri: URL) => {
-      const status = await executeJjCommand("status");
-      const log = await executeJjCommand("log -n 5");
+      const status = await executeJjCommand("status", ".");
+      const log = await executeJjCommand("log -n 5", ".");
       return {
         contents: [
           {
@@ -40,10 +40,12 @@ async function startJujutsuMcpServer() {
     {
       title: "Jujutsu Status",
       description: "Shows the current state of the working copy and the repo.",
-      inputSchema: z.object({}).shape,
+      inputSchema: z.object({
+        workingDirectory: z.string(),
+      }).shape,
     },
-    async () => {
-      const result = await executeJjCommand("status");
+    async (args) => {
+      const result = await executeJjCommand("status", args.workingDirectory);
       return { content: [{ type: "text", text: result }] };
     },
   );
@@ -56,6 +58,7 @@ async function startJujutsuMcpServer() {
       inputSchema: z.object({
         limit: z.number().optional(),
         branch: z.string().optional(),
+        workingDirectory: z.string(),
       }).shape,
     },
     async (args) => {
@@ -66,7 +69,7 @@ async function startJujutsuMcpServer() {
       if (args.branch) {
         command += ` --branch=${args.branch}`;
       }
-      const result = await executeJjCommand(command);
+      const result = await executeJjCommand(command, args.workingDirectory);
       return { content: [{ type: "text", text: result }] };
     },
   );
@@ -78,15 +81,16 @@ async function startJujutsuMcpServer() {
       description: "Creates a new commit.",
       inputSchema: z.object({
         message: z.string(),
+        workingDirectory: z.string(),
       }).shape,
     },
     async (args) => {
       let command = "commit";
       if (args.message !== undefined && args.message !== null) {
-        const escapedMessage = args.message.replace(/'/g, "'\''");
+        const escapedMessage = args.message.replace(/'/g, "'\\''");
         command += ` -m '${escapedMessage}'`;
       }
-      const result = await executeJjCommand(command);
+      const result = await executeJjCommand(command, args.workingDirectory);
       return { content: [{ type: "text", text: result }] };
     },
   );
@@ -99,18 +103,19 @@ async function startJujutsuMcpServer() {
       inputSchema: z.object({
         message: z.string().default(""),
         revision_id: z.string().optional(),
+        workingDirectory: z.string(),
       }).shape,
     },
     async (args) => {
       const message = args.message;
       const revision_id = args.revision_id;
       let command = "describe";
-      const escapedMessage = message.replace(/'/g, "'\''");
+      const escapedMessage = message.replace(/'/g, "'\\''");
       command += ` -m '${escapedMessage}'`;
       if (revision_id) {
         command += ` -r "${revision_id}"`;
       }
-      const result = await executeJjCommand(command);
+      const result = await executeJjCommand(command, args.workingDirectory);
       return { content: [{ type: "text", text: result }] };
     },
   );
@@ -123,6 +128,7 @@ async function startJujutsuMcpServer() {
       inputSchema: z.object({
         action: z.enum(["list", "create", "delete"]),
         name: z.string().optional(),
+        workingDirectory: z.string(),
       }).shape,
     },
     async (args) => {
@@ -160,7 +166,7 @@ async function startJujutsuMcpServer() {
             content: [{ type: "text", text: "Error: Invalid branch action." }],
           };
       }
-      const result = await executeJjCommand(command);
+      const result = await executeJjCommand(command, args.workingDirectory);
       return { content: [{ type: "text", text: result }] };
     },
   );
@@ -172,11 +178,33 @@ async function startJujutsuMcpServer() {
       description: "Shows the diff of the specified revision.",
       inputSchema: z.object({
         revision_id: z.string().default("@"),
+        workingDirectory: z.string(),
       }).shape,
     },
     async (args) => {
       const revision_id = args.revision_id;
-      const result = await executeJjCommand(`diff -r "${revision_id}"`);
+      const result = await executeJjCommand(
+        `diff -r "${revision_id}"`,
+        args.workingDirectory,
+      );
+      return { content: [{ type: "text", text: result }] };
+    },
+  );
+
+  server.registerTool(
+    "jj_init",
+    {
+      title: "Jujutsu Init",
+      description: "Initializes a new Jujutsu repository.",
+      inputSchema: z.object({
+        workingDirectory: z.string(),
+      }).shape,
+    },
+    async (args) => {
+      const result = await executeJjCommand(
+        "git init --colocate",
+        args.workingDirectory,
+      );
       return { content: [{ type: "text", text: result }] };
     },
   );
