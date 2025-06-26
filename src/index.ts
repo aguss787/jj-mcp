@@ -223,9 +223,30 @@ async function startJujutsuMcpServer() {
     },
   );
 
+  server.registerTool(
+    "jj_abandon",
+    {
+      title: "Jujutsu Abandon",
+      description: "Abandons the specified revision.",
+      inputSchema: z.object({
+        revision_id: z.string(),
+        workingDirectory: z
+          .string()
+          .describe("Absolute path to the working directory."),
+      }).shape,
+    },
+    async (args) => {
+      const revision_id = args.revision_id;
+      const result = await executeJjCommand(
+        `abandon -r "${revision_id}"`,
+        args.workingDirectory,
+      );
+      return { content: [{ type: "text", text: result }] };
+    },
+  );
+
   const transport = new StdioServerTransport();
   server.connect(transport);
-
   console.error("Jujutsu MCP Server started.");
 }
 
