@@ -41,7 +41,9 @@ async function startJujutsuMcpServer() {
       title: "Jujutsu Status",
       description: "Shows the current state of the working copy and the repo.",
       inputSchema: z.object({
-        workingDirectory: z.string(),
+        workingDirectory: z
+          .string()
+          .describe("Absolute path to the working directory."),
       }).shape,
     },
     async (args) => {
@@ -58,7 +60,9 @@ async function startJujutsuMcpServer() {
       inputSchema: z.object({
         limit: z.number().optional(),
         branch: z.string().optional(),
-        workingDirectory: z.string(),
+        workingDirectory: z
+          .string()
+          .describe("Absolute path to the working directory."),
       }).shape,
     },
     async (args) => {
@@ -81,13 +85,15 @@ async function startJujutsuMcpServer() {
       description: "Creates a new commit.",
       inputSchema: z.object({
         message: z.string(),
-        workingDirectory: z.string(),
+        workingDirectory: z
+          .string()
+          .describe("Absolute path to the working directory."),
       }).shape,
     },
     async (args) => {
       let command = "commit";
       if (args.message !== undefined && args.message !== null) {
-        const escapedMessage = args.message.replace(/'/g, "'\\''");
+        const escapedMessage = args.message.replace(/'/g, "'\''");
         command += ` -m '${escapedMessage}'`;
       }
       const result = await executeJjCommand(command, args.workingDirectory);
@@ -103,14 +109,16 @@ async function startJujutsuMcpServer() {
       inputSchema: z.object({
         message: z.string().default(""),
         revision_id: z.string().optional(),
-        workingDirectory: z.string(),
+        workingDirectory: z
+          .string()
+          .describe("Absolute path to the working directory."),
       }).shape,
     },
     async (args) => {
       const message = args.message;
       const revision_id = args.revision_id;
       let command = "describe";
-      const escapedMessage = message.replace(/'/g, "'\\''");
+      const escapedMessage = message.replace(/'/g, "'\''");
       command += ` -m '${escapedMessage}'`;
       if (revision_id) {
         command += ` -r "${revision_id}"`;
@@ -128,7 +136,9 @@ async function startJujutsuMcpServer() {
       inputSchema: z.object({
         action: z.enum(["list", "create", "delete"]),
         name: z.string().optional(),
-        workingDirectory: z.string(),
+        workingDirectory: z
+          .string()
+          .describe("Absolute path to the working directory."),
       }).shape,
     },
     async (args) => {
@@ -178,7 +188,9 @@ async function startJujutsuMcpServer() {
       description: "Shows the diff of the specified revision.",
       inputSchema: z.object({
         revision_id: z.string().default("@"),
-        workingDirectory: z.string(),
+        workingDirectory: z
+          .string()
+          .describe("Absolute path to the working directory."),
       }).shape,
     },
     async (args) => {
@@ -197,7 +209,9 @@ async function startJujutsuMcpServer() {
       title: "Jujutsu Init",
       description: "Initializes a new Jujutsu repository.",
       inputSchema: z.object({
-        workingDirectory: z.string(),
+        workingDirectory: z
+          .string()
+          .describe("Absolute path to the working directory."),
       }).shape,
     },
     async (args) => {
