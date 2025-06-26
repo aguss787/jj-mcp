@@ -245,6 +245,74 @@ async function startJujutsuMcpServer() {
     },
   );
 
+  server.registerTool(
+    "jj_rebase",
+    {
+      title: "Jujutsu Rebase",
+      description: "Rebases revisions to different parent(s).",
+      inputSchema: z.object({
+        source: z
+          .array(z.string())
+          .optional()
+          .describe("Rebase a revision and its descendants (can be repeated)."),
+        branch: z
+          .array(z.string())
+          .optional()
+          .describe(
+            "Rebase a whole branch, relative to the destination (can be repeated).",
+          ),
+        revisions: z
+          .array(z.string())
+          .optional()
+          .describe(
+            "Rebase the specified revisions without their descendants (can be repeated).",
+          ),
+        destination: z
+          .array(z.string())
+          .describe(
+            "The revision(s) to rebase onto (can be repeated to create a merge commit).",
+          ),
+        workingDirectory: z
+          .string()
+          .describe("Absolute path to the working directory."),
+      }).shape,
+    },
+    async (args) => {
+      let command = "rebase";
+
+      if (args.source && args.source.length > 0) {
+        command += ` -s ${args.source.map((s) => `'${s}'`).join(" ")}`;
+      }
+      if (args.branch && args.branch.length > 0) {
+        command += ` -b ${args.branch.map((b) => `'${b}'`).join(" ")}`;
+      }
+      if (args.revisions && args.revisions.length > 0) {
+        command += ` -r ${args.revisions.map((r) => `'${r}'`).join(" ")}`;
+      }
+      if (args.destination && args.destination.length > 0) {
+        command += ` -d ${args.destination.map((d) => `'${d}'`).join(" ")}`;
+      }
+
+      if (
+        !args.source &&
+        !args.branch &&
+        !args.revisions &&
+        !args.destination
+      ) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "Error: At least one of --source, --branch, --revisions, or --destination must be provided.",
+            },
+          ],
+        };
+      }
+      const result = await executeJjCommand(command, args.workingDirectory);
+      return { content: [{ type: "text", text: result }] };
+    },
+  );
+
   const transport = new StdioServerTransport();
   server.connect(transport);
   console.error("Jujutsu MCP Server started.");

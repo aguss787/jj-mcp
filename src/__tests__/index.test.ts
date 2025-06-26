@@ -29,6 +29,8 @@ jest.mock("child_process", () => ({
       callback(null, { stdout: "Mocked diff output", stderr: "" });
     } else if (command.includes("jj init")) {
       callback(null, { stdout: "Mocked init output", stderr: "" });
+    } else if (command.includes("jj rebase")) {
+      callback(null, { stdout: "Mocked rebase output", stderr: "" });
     } else {
       callback(new Error("Unknown command"), {
         stdout: "",
@@ -147,6 +149,16 @@ describe("Jujutsu MCP Server Tools", () => {
     expect(result).toBe("Mocked init output");
     expect(exec).toHaveBeenCalledWith(
       "jj init",
+      expect.any(Object),
+      expect.any(Function),
+    );
+  });
+
+  test("jj_rebase tool should rebase revisions", async () => {
+    const result = await executeJjCommand("rebase -s 'rev1' -d 'rev2'", ".");
+    expect(result).toBe("Mocked rebase output");
+    expect(exec).toHaveBeenCalledWith(
+      "jj rebase -s 'rev1' -d 'rev2'",
       expect.any(Object),
       expect.any(Function),
     );
