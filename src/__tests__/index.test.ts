@@ -1,5 +1,4 @@
 import { executeJjCommand } from "../utils"; // Import the function to be tested
-import { promisify } from "util";
 
 // This line ensures that child_process is mocked globally for this test file.
 // All subsequent imports/requires of 'child_process' will get the mocked version.
@@ -41,9 +40,8 @@ jest.mock("child_process", () => ({
 }));
 
 // Now, after `jest.mock` has run, when we require 'child_process', we get the mocked version.
-// We can then deconstruct 'exec' from it and promisify it.
+// We can then deconstruct 'exec' from it.
 const { exec } = require("child_process"); // Get the *mocked* exec
-const cp_exec = promisify(exec); // Promisify the mocked exec
 
 describe("Jujutsu MCP Server Tools", () => {
   beforeEach(() => {

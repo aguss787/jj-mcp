@@ -3,7 +3,7 @@ import { promisify } from "util";
 
 const exec = promisify(cp_exec);
 
-async function executeJjCommand(
+export async function executeJjCommand(
   command: string,
   workingDirectory: string,
 ): Promise<string> {
@@ -23,4 +23,7 @@ async function executeJjCommand(
   }
 }
 
-export { executeJjCommand };
+export function as_base64_cmd(message: string): string {
+  const base64Message = Buffer.from(message).toString("base64");
+  return `$(echo ${base64Message} | base64 -d)`;
+}

@@ -9,8 +9,15 @@
     "strict": true,
     "skipLibCheck": true,
     "types": ["jest", "node"],
-    "baseUrl": "."
+    "baseUrl": ".",
+    "noEmitOnError": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noUncheckedIndexedAccess": true
   },
   "include": ["src/**/*", "src/__tests__/**/*"],
   "exclude": ["dist"]
 }
+
+
+

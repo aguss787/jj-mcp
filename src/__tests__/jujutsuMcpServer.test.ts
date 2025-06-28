@@ -16,23 +16,22 @@ jest.mock("@modelcontextprotocol/sdk/server/mcp.js", () => ({
 }));
 
 jest.mock("../utils", () => ({
-  executeJjCommand: jest.fn((command: string, workingDirectory: string) => {
+  executeJjCommand: jest.fn((command: string, _workingDirectory: string) => {
     if (command.includes("status")) {
       return Promise.resolve("Mocked status output");
     }
     return Promise.resolve("");
   }),
+  as_base64_cmd: jest.requireActual("../utils").as_base64_cmd,
 }));
 
 describe("startJujutsuMcpServer", () => {
-  let server: McpServer;
-
   beforeEach(async () => {
     // Reset the mock before each test
     mockRegisterTool.mockClear();
     (McpServer as jest.Mock).mockClear();
 
-    server = await startJujutsuMcpServer();
+    await startJujutsuMcpServer();
   });
 
   test("should register jj_status tool", () => {
