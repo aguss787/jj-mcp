@@ -89,8 +89,10 @@ describe("startJujutsuMcpServer", () => {
     };
     const result = await jjCommitHandler(input);
 
+    const base64Message = Buffer.from(input.message).toString("base64");
+
     expect(executeJjCommand).toHaveBeenCalledWith(
-      "commit -m 'Test commit message'",
+      `commit -m "$(echo ${base64Message} | base64 -d)"`,
       "/path/to/repo",
     );
     expect(result).toEqual({ content: [{ type: "text", text: "" }] });
@@ -113,8 +115,10 @@ describe("startJujutsuMcpServer", () => {
     };
     const result = await jjCommitHandler(input);
 
+    const base64Message = Buffer.from(input.message).toString("base64");
+
     expect(executeJjCommand).toHaveBeenCalledWith(
-      "commit -m 'First line\nSecond line'",
+      `commit -m "$(echo ${base64Message} | base64 -d)"`,
       "/path/to/repo",
     );
     expect(result).toEqual({ content: [{ type: "text", text: "" }] });
@@ -138,8 +142,10 @@ describe("startJujutsuMcpServer", () => {
     };
     const result = await jjCommitHandler(input);
 
+    const base64Message = Buffer.from(input.message).toString("base64");
+
     expect(executeJjCommand).toHaveBeenCalledWith(
-      "commit -m 'Fix: Update '\''config'\'' file\nAdded \"new feature\" support\nBump version to 2.0.0'",
+      `commit -m "$(echo ${base64Message} | base64 -d)"`,
       "/path/to/repo",
     );
     expect(result).toEqual({ content: [{ type: "text", text: "" }] });

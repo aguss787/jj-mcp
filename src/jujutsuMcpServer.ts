@@ -98,8 +98,8 @@ export async function startJujutsuMcpServer() {
     async (args) => {
       let command = "commit";
       if (args.message !== undefined && args.message !== null) {
-        const escapedMessage = args.message.replace(/'/g, "'\''");
-        command += ` -m '${escapedMessage}'`;
+        const base64Message = Buffer.from(args.message).toString("base64");
+        command += ` -m "$(echo ${base64Message} | base64 -d)"`;
       }
       const result = await executeJjCommand(command, args.workingDirectory);
       return { content: [{ type: "text", text: result }] };
@@ -134,8 +134,8 @@ export async function startJujutsuMcpServer() {
       const message = args.message;
       const revision_id = args.revision_id;
       let command = "describe";
-      const escapedMessage = message.replace(/'/g, "'\''");
-      command += ` -m '${escapedMessage}'`;
+      const base64Message = Buffer.from(message).toString("base64");
+      command += ` -m "$(echo ${base64Message} | base64 -d)"`;
       if (revision_id) {
         command += ` -r "${revision_id}"`;
       }
@@ -368,8 +368,8 @@ export async function startJujutsuMcpServer() {
         command += ` --tool '${args.tool}'`;
       }
       if (args.message) {
-        const escapedMessage = args.message.replace(/'/g, "'\''");
-        command += ` -m '${escapedMessage}'`;
+        const base64Message = Buffer.from(args.message).toString("base64");
+        command += ` -m "$(echo ${base64Message} | base64 -d)"`;
       }
       if (args.keep_emptied) {
         command += " --keep-emptied";
