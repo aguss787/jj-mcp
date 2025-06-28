@@ -6,8 +6,8 @@
   "scripts": {
     "start": "ts-node src/index.ts",
     "build": "tsc",
-    "test": "tsc 2>&1 && jest 2>&1",
-    "bundle": "esbuild dist/index.js --bundle --outfile=dist/bundle.js --platform=node"
+    "test": "tsc 2>&1 && jest 2>&1 && npm run bundle",
+    "bundle": "tsc 2>&1 && esbuild dist/index.js --bundle --outfile=dist/bundle.js --platform=node 2>&1"
   },
   "keywords": [],
   "author": "",

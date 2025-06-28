@@ -21,7 +21,10 @@ export async function startJujutsuMcpServer() {
     },
     async (uri: URL) => {
       const status = await executeJjCommand("status", ".");
-      const log = await executeJjCommand("log -n 5", ".");
+      const log = await executeJjCommand(
+        "log -n 5 --template='builtin_log_compact_full_description'",
+        ".",
+      );
       return {
         contents: [
           {
@@ -63,6 +66,10 @@ export async function startJujutsuMcpServer() {
           .optional()
           .describe("Maximum number of commits to show."),
         branch: z.string().optional().describe("Branch to show history for."),
+        template: z
+          .string()
+          .optional()
+          .describe("A template to use for the output."),
         workingDirectory: z
           .string()
           .min(1)
@@ -76,6 +83,11 @@ export async function startJujutsuMcpServer() {
       }
       if (args.branch) {
         command += ` --branch=${args.branch}`;
+      }
+      if (args.template) {
+        command += ` --template='${args.template}'`;
+      } else {
+        command += ` --template='builtin_log_compact_full_description'`;
       }
       const result = await executeJjCommand(command, args.workingDirectory);
       return { content: [{ type: "text", text: result }] };
