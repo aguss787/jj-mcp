@@ -178,7 +178,7 @@ describe("startJujutsuMcpServer", () => {
     const result = await jjBookmarkSetHandler(input);
 
     expect(executeJjCommand).toHaveBeenCalledWith(
-      `bookmark set 'my-bookmark' -r 'abcde' --allow-backwards`,
+      `bookmark set 'my-bookmark' -r 'abcde' -B`,
       "/path/to/repo",
     );
     expect(result).toEqual({ content: [{ type: "text", text: "" }] });

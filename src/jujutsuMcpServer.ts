@@ -79,15 +79,15 @@ const TOOLS: Tool[] = [
     handler: async (args: any) => {
       let command = "log";
       if (args.limit) {
-        command += ` -n ${args.limit}`;
+        command += ` --limit ${args.limit}`;
       }
       if (args.branch) {
-        command += ` --branch=${args.branch}`;
+        command += ` -r '${args.branch}'`;
       }
       if (args.template) {
-        command += ` --template='${args.template}'`;
+        command += ` -T '${args.template}'`;
       } else {
-        command += ` --template='builtin_log_compact_full_description'`;
+        command += ` -T 'builtin_log_compact_full_description'`;
       }
       const result = await executeJjCommand(command, args.workingDirectory);
       return { content: [{ type: "text" as const, text: result }] };
@@ -145,7 +145,7 @@ const TOOLS: Tool[] = [
       let command = "describe";
       command += ` -m "${as_base64_cmd(message)}"`;
       if (revision_id) {
-        command += ` -r "${revision_id}"`;
+        command += ` '${revision_id}'`;
       }
       const result = await executeJjCommand(command, args.workingDirectory);
       return { content: [{ type: "text", text: result }] };
@@ -168,7 +168,10 @@ const TOOLS: Tool[] = [
           .describe(
             "Name of the bookmark to create, delete, or list specific details for.",
           ),
-        revision_id: z.string().describe("The revision to bookmark."),
+        revision_id: z
+          .string()
+          .optional()
+          .describe("The revision to bookmark."),
         workingDirectory: z
           .string()
           .min(1)
@@ -191,7 +194,10 @@ const TOOLS: Tool[] = [
                 },
               ],
             };
-          command = `bookmark create ${args.name} -r "${args.revision_id}"`;
+          command = `bookmark create ${args.name}`;
+          if (args.revision_id) {
+            command += ` -r "${args.revision_id}"`;
+          }
           break;
         case "delete":
           if (!args.name)
@@ -249,7 +255,7 @@ const TOOLS: Tool[] = [
         command += ` -r '${args.revision_id}'`;
       }
       if (args.allow_backwards) {
-        command += " --allow-backwards";
+        command += " -B";
       }
       const result = await executeJjCommand(command, args.workingDirectory);
       return { content: [{ type: "text", text: result }] };
@@ -286,11 +292,11 @@ const TOOLS: Tool[] = [
         command += ` ${args.names.map((n: string) => `'${n}'`).join(" ")}`;
       }
       if (args.from && args.from.length > 0) {
-        command += ` --from ${args.from.map((f: string) => `'${f}'`).join(" ")}`;
+        command += ` -f ${args.from.map((f: string) => `'${f}'`).join(" ")}`;
       }
-      command += ` --to '${args.to}'`;
+      command += ` -t '${args.to}'`;
       if (args.allow_backwards) {
-        command += " --allow-backwards";
+        command += " -B";
       }
       const result = await executeJjCommand(command, args.workingDirectory);
       return { content: [{ type: "text", text: result }] };
@@ -398,13 +404,13 @@ const TOOLS: Tool[] = [
         command += ` -r '${args.revision}'`;
       }
       if (args.into) {
-        command += ` --into '${args.into}'`;
+        command += ` -t '${args.into}'`;
       }
       if (args.from && args.from.length > 0) {
-        command += ` --from ${args.from.map((f: string) => `'${f}'`).join(" ")}`;
+        command += ` -f ${args.from.map((f: string) => `'${f}'`).join(" ")}`;
       }
       if (args.filesets && args.filesets.length > 0) {
-        command += ` --filesets ${args.filesets.map((f: string) => `'${f}'`).join(" ")}`;
+        command += ` ${args.filesets.map((f: string) => `'${f}'`).join(" ")}`;
       }
       if (args.tool) {
         command += ` --tool '${args.tool}'`;
@@ -413,10 +419,10 @@ const TOOLS: Tool[] = [
         command += ` -m "${as_base64_cmd(args.message)}"`;
       }
       if (args.keep_emptied) {
-        command += " --keep-emptied";
+        command += " -k";
       }
       if (args.use_destination_message) {
-        command += " --use-destination-message";
+        command += " -u";
       }
       const result = await executeJjCommand(command, args.workingDirectory);
       return { content: [{ type: "text", text: result }] };
@@ -613,7 +619,7 @@ const TOOLS: Tool[] = [
         command += " --allow-empty-description";
       }
       if (args.allow_new) {
-        command += " --allow-new";
+        command += " -N";
       }
       if (args.allow_private) {
         command += " --allow-private";
@@ -653,10 +659,10 @@ const TOOLS: Tool[] = [
     handler: async (args: any) => {
       let command = "git fetch";
       if (args.remote && args.remote.length > 0) {
-        command += ` ${args.remote.map((r: string) => `'${r}'`).join(" ")}`;
+        command += ` --remote ${args.remote.map((r: string) => `'${r}'`).join(" ")}`;
       }
       if (args.branch && args.branch.length > 0) {
-        command += ` --branch ${args.branch.map((b: string) => `'${b}'`).join(" ")}`;
+        command += ` -b ${args.branch.map((b: string) => `'${b}'`).join(" ")}`;
       }
       if (args.all_remotes) {
         command += " --all-remotes";
@@ -779,7 +785,7 @@ const RESOURCES: Resource[] = [
     handler: async (uri: URL) => {
       const status = await executeJjCommand("status", ".");
       const log = await executeJjCommand(
-        "log -n 5 --template='builtin_log_compact_full_description'",
+        "log --limit 5 -T 'builtin_log_compact_full_description'",
         ".",
       );
       return {
