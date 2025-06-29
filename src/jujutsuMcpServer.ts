@@ -283,7 +283,7 @@ const TOOLS: Tool[] = [
     handler: async (args: any) => {
       let command = "bookmark move";
       if (args.names && args.names.length > 0) {
-        command += ` --name ${args.names.map((n: string) => `'${n}'`).join(" ")}`;
+        command += ` ${args.names.map((n: string) => `'${n}'`).join(" ")}`;
       }
       if (args.from && args.from.length > 0) {
         command += ` --from ${args.from.map((f: string) => `'${f}'`).join(" ")}`;
@@ -584,7 +584,7 @@ const TOOLS: Tool[] = [
         command += ` -r ${args.revisions.map((r: string) => `'${r}'`).join(" ")}`;
       }
       if (args.bookmark && args.bookmark.length > 0) {
-        command += ` -B ${args.bookmark.map((b: string) => `'${b}'`).join(" ")}`;
+        command += ` --bookmark ${args.bookmark.map((b: string) => `'${b}'`).join(" ")}`;
       }
       if (args.change && args.change.length > 0) {
         command += ` --change ${args.change.map((c: string) => `'${c}'`).join(" ")}`;
