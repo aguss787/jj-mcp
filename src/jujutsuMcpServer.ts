@@ -578,19 +578,27 @@ const TOOLS: Tool[] = [
     handler: async (args: any) => {
       let command = "git push";
       if (args.remote) {
-        command += ` '${args.remote}'`;
+        command += ` --remote '${args.remote}'`;
       }
       if (args.revisions && args.revisions.length > 0) {
-        command += ` -r ${args.revisions.map((r: string) => `'${r}'`).join(" ")}`;
+        for (const revision of args.revisions) {
+          command += ` -r '${revision}'`;
+        }
       }
       if (args.bookmark && args.bookmark.length > 0) {
-        command += ` --bookmark ${args.bookmark.map((b: string) => `'${b}'`).join(" ")}`;
+        for (const bookmark of args.bookmark) {
+          command += ` -b '${bookmark}'`;
+        }
       }
       if (args.change && args.change.length > 0) {
-        command += ` --change ${args.change.map((c: string) => `'${c}'`).join(" ")}`;
+        for (const change of args.change) {
+          command += ` -c '${change}'`;
+        }
       }
       if (args.named && args.named.length > 0) {
-        command += ` --named ${args.named.map((n: string) => `'${n}'`).join(" ")}`;
+        for (const named_entry of args.named) {
+          command += ` --named '${named_entry}'`;
+        }
       }
       if (args.all) {
         command += " --all";
