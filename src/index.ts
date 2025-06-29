@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { startJujutsuMcpServer } from "./jujutsuMcpServer.js"; // Import the function
 
