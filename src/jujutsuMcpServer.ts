@@ -229,7 +229,7 @@ const TOOLS: Tool[] = [
         revision_id: z
           .string()
           .optional()
-          .describe("The bookmark\'s target revision."),
+          .describe("The bookmark's target revision."),
         allow_backwards: z
           .boolean()
           .optional()
@@ -653,6 +653,106 @@ const TOOLS: Tool[] = [
       if (args.all_remotes) {
         command += " --all-remotes";
       }
+      const result = await executeJjCommand(command, args.workingDirectory);
+      return { content: [{ type: "text", text: result }] };
+    },
+  },
+  {
+    name: "jj_git_remote_add",
+    definition: {
+      title: "Jujutsu Git Remote Add",
+      description: "Add a Git remote.",
+      inputSchema: z.object({
+        remote: z.string().min(1).describe("The remote's name"),
+        url: z.string().min(1).describe("The remote's URL or path"),
+        workingDirectory: z
+          .string()
+          .min(1)
+          .describe("Absolute path to the repository."),
+      }).shape,
+    },
+    handler: async (args: any) => {
+      const command = `git remote add '${args.remote}' '${args.url}'`;
+      const result = await executeJjCommand(command, args.workingDirectory);
+      return { content: [{ type: "text", text: result }] };
+    },
+  },
+  {
+    name: "jj_git_remote_list",
+    definition: {
+      title: "Jujutsu Git Remote List",
+      description: "List Git remotes.",
+      inputSchema: z.object({
+        workingDirectory: z
+          .string()
+          .min(1)
+          .describe("Absolute path to the repository."),
+      }).shape,
+    },
+    handler: async (args: any) => {
+      const command = "git remote list";
+      const result = await executeJjCommand(command, args.workingDirectory);
+      return { content: [{ type: "text", text: result }] };
+    },
+  },
+  {
+    name: "jj_git_remote_remove",
+    definition: {
+      title: "Jujutsu Git Remote Remove",
+      description: "Remove a Git remote and forget its bookmarks.",
+      inputSchema: z.object({
+        remote: z.string().min(1).describe("The remote's name"),
+        workingDirectory: z
+          .string()
+          .min(1)
+          .describe("Absolute path to the repository."),
+      }).shape,
+    },
+    handler: async (args: any) => {
+      const command = `git remote remove '${args.remote}'`;
+      const result = await executeJjCommand(command, args.workingDirectory);
+      return { content: [{ type: "text", text: result }] };
+    },
+  },
+  {
+    name: "jj_git_remote_rename",
+    definition: {
+      title: "Jujutsu Git Remote Rename",
+      description: "Rename a Git remote.",
+      inputSchema: z.object({
+        old_name: z.string().min(1).describe("The name of an existing remote"),
+        new_name: z.string().min(1).describe("The desired name for the remote"),
+        workingDirectory: z
+          .string()
+          .min(1)
+          .describe("Absolute path to the repository."),
+      }).shape,
+    },
+    handler: async (args: any) => {
+      const command = `git remote rename '${args.old_name}' '${args.new_name}'`;
+      const result = await executeJjCommand(command, args.workingDirectory);
+      return { content: [{ type: "text", text: result }] };
+    },
+  },
+  {
+    name: "jj_git_remote_set_url",
+    definition: {
+      title: "Jujutsu Git Remote Set URL",
+      description: "Set the URL of a Git remote.",
+      inputSchema: z.object({
+        remote: z.string().min(1).describe("The remote's name"),
+        url: z
+          .string()
+          .min(1)
+          .describe("The desired URL or path for the remote"),
+        workingDirectory: z
+          .string()
+          .min(1)
+          .describe("Absolute path to the repository."),
+      }).shape,
+    },
+    handler: async (args: any) => {
+      const command = `git remote set-url '${args.remote}' '${args.url}'`;
       const result = await executeJjCommand(command, args.workingDirectory);
       return { content: [{ type: "text", text: result }] };
     },
