@@ -2,44 +2,43 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { executeJjCommand, as_base64_cmd } from "./utils"; // Import from the new file
 
-export async function startJujutsuMcpServer() {
-  const server = new McpServer({
-    name: "jujutsu",
-    version: "1.0.0", // Added missing version property
-    description:
-      "A Model Context Protocol server for interacting with Jujutsu version control.",
-    resources: [], // Removed resources from constructor
-  });
+type ToolHandler = (args: any) => Promise<{
+  content: { type: "text"; text: string }[];
+}>;
 
-  server.registerResource(
-    "info",
-    "jujutsu://info",
-    {
-      title: "Jujutsu Info", // Added this line
-      description: "General information about the Jujutsu repository.",
-      mime_type: "text/plain",
-    },
-    async (uri: URL) => {
-      const status = await executeJjCommand("status", ".");
-      const log = await executeJjCommand(
-        "log -n 5 --template='builtin_log_compact_full_description'",
-        ".",
-      );
-      return {
-        contents: [
-          {
-            uri: uri.href,
-            type: "text",
-            text: `Jujutsu Repository Info:\n\nStatus:\n${status}\n\nRecent Log:\n${log}`,
-          },
-        ],
-      };
-    },
-  );
+interface Tool {
+  name: string;
+  definition: {
+    title: string;
+    description: string;
+    inputSchema: any;
+  };
+  handler: ToolHandler;
+}
 
-  server.registerTool(
-    "jj_status",
-    {
+type ResourceHandler = (uri: URL) => Promise<{
+  contents: {
+    uri: string;
+    type: string;
+    text: string;
+  }[];
+}>;
+
+interface Resource {
+  name: string;
+  uri: string;
+  definition: {
+    title: string;
+    description: string;
+    mime_type: string;
+  };
+  handler: ResourceHandler;
+}
+
+const TOOLS: Tool[] = [
+  {
+    name: "jj_status",
+    definition: {
       title: "Jujutsu Status",
       description: "Shows the current state of the working copy and the repo.",
       inputSchema: z.object({
@@ -49,15 +48,14 @@ export async function startJujutsuMcpServer() {
           .describe("Absolute path to the repository."),
       }).shape,
     },
-    async (args) => {
+    handler: async (args: any) => {
       const result = await executeJjCommand("status", args.workingDirectory);
-      return { content: [{ type: "text", text: result }] };
+      return { content: [{ type: "text" as const, text: result }] };
     },
-  );
-
-  server.registerTool(
-    "jj_log",
-    {
+  },
+  {
+    name: "jj_log",
+    definition: {
       title: "Jujutsu Log",
       description: "Shows the commit history.",
       inputSchema: z.object({
@@ -70,7 +68,7 @@ export async function startJujutsuMcpServer() {
           .string()
           .optional()
           .describe(
-            "A template to use for the output. The valid values are: [builtin_config_list, builtin_config_list_detailed, builtin_draft_commit_description, builtin_log_comfortable, builtin_log_compact, builtin_log_compact_full_description, builtin_log_detailed, builtin_log_node, builtin_log_node_ascii, builtin_log_oneline, builtin_op_log_comfortable, builtin_op_log_compact, builtin_op_log_node, builtin_op_log_node_ascii, builtin_op_log_oneline, commit_summary_separator, default_commit_description, description_placeholder, email_placeholder, git_format_patch_email_headers, name_placeholder]. Prefer `builtin_log_compact_full_description` as it contains the full commit message",
+            "A template to use for the output. The valid values are: [builtin_log_compact_full_description, builtin_log_detailed]",
           ),
         workingDirectory: z
           .string()
@@ -78,7 +76,7 @@ export async function startJujutsuMcpServer() {
           .describe("Absolute path to the repository."),
       }).shape,
     },
-    async (args) => {
+    handler: async (args: any) => {
       let command = "log";
       if (args.limit) {
         command += ` -n ${args.limit}`;
@@ -92,13 +90,12 @@ export async function startJujutsuMcpServer() {
         command += ` --template='builtin_log_compact_full_description'`;
       }
       const result = await executeJjCommand(command, args.workingDirectory);
-      return { content: [{ type: "text", text: result }] };
+      return { content: [{ type: "text" as const, text: result }] };
     },
-  );
-
-  server.registerTool(
-    "jj_commit",
-    {
+  },
+  {
+    name: "jj_commit",
+    definition: {
       title: "Jujutsu Commit",
       description: "Creates a new commit.",
       inputSchema: z.object({
@@ -109,19 +106,18 @@ export async function startJujutsuMcpServer() {
           .describe("Absolute path to the repository."),
       }).shape,
     },
-    async (args) => {
+    handler: async (args: any) => {
       let command = "commit";
       if (args.message !== undefined && args.message !== null) {
         command += ` -m "${as_base64_cmd(args.message)}"`;
       }
       const result = await executeJjCommand(command, args.workingDirectory);
-      return { content: [{ type: "text", text: result }] };
+      return { content: [{ type: "text" as const, text: result }] };
     },
-  );
-
-  server.registerTool(
-    "jj_desc",
-    {
+  },
+  {
+    name: "jj_desc",
+    definition: {
       title: "Jujutsu Describe Commit",
       description: "Amends the description of the specified commit.",
       inputSchema: z.object({
@@ -143,7 +139,7 @@ export async function startJujutsuMcpServer() {
           .describe("Absolute path to the repository."),
       }).shape,
     },
-    async (args) => {
+    handler: async (args: any) => {
       const message = args.message;
       const revision_id = args.revision_id;
       let command = "describe";
@@ -154,11 +150,10 @@ export async function startJujutsuMcpServer() {
       const result = await executeJjCommand(command, args.workingDirectory);
       return { content: [{ type: "text", text: result }] };
     },
-  );
-
-  server.registerTool(
-    "jj_bookmark",
-    {
+  },
+  {
+    name: "jj_bookmark",
+    definition: {
       title: "Jujutsu Bookmark",
       description: "Manage bookmarks.",
       inputSchema: z.object({
@@ -180,7 +175,7 @@ export async function startJujutsuMcpServer() {
           .describe("Absolute path to the repository."),
       }).shape,
     },
-    async (args) => {
+    handler: async (args: any) => {
       let command: string;
       switch (args.action) {
         case "list":
@@ -191,7 +186,7 @@ export async function startJujutsuMcpServer() {
             return {
               content: [
                 {
-                  type: "text",
+                  type: "text" as const,
                   text: "Error: Bookmark name is required for creating a bookmark.",
                 },
               ],
@@ -203,7 +198,7 @@ export async function startJujutsuMcpServer() {
             return {
               content: [
                 {
-                  type: "text",
+                  type: "text" as const,
                   text: "Error: Bookmark name is required for deleting a bookmark.",
                 },
               ],
@@ -213,18 +208,20 @@ export async function startJujutsuMcpServer() {
         default:
           return {
             content: [
-              { type: "text", text: "Error: Invalid bookmark action." },
+              {
+                type: "text" as const,
+                text: "Error: Invalid bookmark action.",
+              },
             ],
           };
       }
       const result = await executeJjCommand(command, args.workingDirectory);
       return { content: [{ type: "text", text: result }] };
     },
-  );
-
-  server.registerTool(
-    "jj_bookmark_move",
-    {
+  },
+  {
+    name: "jj_bookmark_move",
+    definition: {
       title: "Jujutsu Bookmark Move",
       description: "Move existing bookmarks to a target revision.",
       inputSchema: z.object({
@@ -247,13 +244,13 @@ export async function startJujutsuMcpServer() {
           .describe("Absolute path to the repository."),
       }).shape,
     },
-    async (args) => {
+    handler: async (args: any) => {
       let command = "bookmark move";
       if (args.names && args.names.length > 0) {
-        command += ` --name ${args.names.map((n) => `'${n}'`).join(" ")}`;
+        command += ` --name ${args.names.map((n: string) => `'${n}'`).join(" ")}`;
       }
       if (args.from && args.from.length > 0) {
-        command += ` --from ${args.from.map((f) => `'${f}'`).join(" ")}`;
+        command += ` --from ${args.from.map((f: string) => `'${f}'`).join(" ")}`;
       }
       command += ` --to '${args.to}'`;
       if (args.allow_backwards) {
@@ -262,11 +259,10 @@ export async function startJujutsuMcpServer() {
       const result = await executeJjCommand(command, args.workingDirectory);
       return { content: [{ type: "text", text: result }] };
     },
-  );
-
-  server.registerTool(
-    "jj_diff",
-    {
+  },
+  {
+    name: "jj_diff",
+    definition: {
       title: "Jujutsu Diff",
       description: "Shows the diff of the specified revision.",
       inputSchema: z.object({
@@ -282,7 +278,7 @@ export async function startJujutsuMcpServer() {
           .describe("Absolute path to the repository."),
       }).shape,
     },
-    async (args) => {
+    handler: async (args: any) => {
       const revision_id = args.revision_id;
       const result = await executeJjCommand(
         `diff -r "${revision_id}"`,
@@ -290,11 +286,10 @@ export async function startJujutsuMcpServer() {
       );
       return { content: [{ type: "text", text: result }] };
     },
-  );
-
-  server.registerTool(
-    "jj_abandon",
-    {
+  },
+  {
+    name: "jj_abandon",
+    definition: {
       title: "Jujutsu Abandon",
       description: "Abandon the specified revision.",
       inputSchema: z.object({
@@ -305,7 +300,7 @@ export async function startJujutsuMcpServer() {
           .describe("Absolute path to the repository."),
       }).shape,
     },
-    async (args) => {
+    handler: async (args: any) => {
       const revision_id = args.revision_id;
       const result = await executeJjCommand(
         `abandon -r "${revision_id}"`,
@@ -313,11 +308,10 @@ export async function startJujutsuMcpServer() {
       );
       return { content: [{ type: "text", text: result }] };
     },
-  );
-
-  server.registerTool(
-    "jj_squash",
-    {
+  },
+  {
+    name: "jj_squash",
+    definition: {
       title: "Jujutsu Squash",
       description: "Move changes from a revision into another revision.",
       inputSchema: z.object({
@@ -362,7 +356,7 @@ export async function startJujutsuMcpServer() {
           .describe("Absolute path to the repository."),
       }).shape,
     },
-    async (args) => {
+    handler: async (args: any) => {
       let command = "squash";
       if (args.revision) {
         command += ` -r '${args.revision}'`;
@@ -371,10 +365,10 @@ export async function startJujutsuMcpServer() {
         command += ` --into '${args.into}'`;
       }
       if (args.from && args.from.length > 0) {
-        command += ` --from ${args.from.map((f) => `'${f}'`).join(" ")}`;
+        command += ` --from ${args.from.map((f: string) => `'${f}'`).join(" ")}`;
       }
       if (args.filesets && args.filesets.length > 0) {
-        command += ` --filesets ${args.filesets.map((f) => `'${f}'`).join(" ")}`;
+        command += ` --filesets ${args.filesets.map((f: string) => `'${f}'`).join(" ")}`;
       }
       if (args.tool) {
         command += ` --tool '${args.tool}'`;
@@ -391,11 +385,10 @@ export async function startJujutsuMcpServer() {
       const result = await executeJjCommand(command, args.workingDirectory);
       return { content: [{ type: "text", text: result }] };
     },
-  );
-
-  server.registerTool(
-    "jj_rebase",
-    {
+  },
+  {
+    name: "jj_rebase",
+    definition: {
       title: "Jujutsu Rebase",
       description: "Move revisions to different parent(s).",
       inputSchema: z.object({
@@ -441,26 +434,26 @@ export async function startJujutsuMcpServer() {
           .describe("Absolute path to the repository."),
       }).shape,
     },
-    async (args) => {
+    handler: async (args: any) => {
       let command = "rebase";
 
       if (args.source && args.source.length > 0) {
-        command += ` -s ${args.source.map((s) => `'${s}'`).join(" ")}`;
+        command += ` -s ${args.source.map((s: string) => `'${s}'`).join(" ")}`;
       }
       if (args.branch && args.branch.length > 0) {
-        command += ` -b ${args.branch.map((b) => `'${b}'`).join(" ")}`;
+        command += ` -b ${args.branch.map((b: string) => `'${b}'`).join(" ")}`;
       }
       if (args.revisions && args.revisions.length > 0) {
-        command += ` -r ${args.revisions.map((r) => `'${r}'`).join(" ")}`;
+        command += ` -r ${args.revisions.map((r: string) => `'${r}'`).join(" ")}`;
       }
       if (args.destination && args.destination.length > 0) {
-        command += ` -d ${args.destination.map((d) => `'${d}'`).join(" ")}`;
+        command += ` -d ${args.destination.map((d: string) => `'${d}'`).join(" ")}`;
       }
       if (args.insert_before && args.insert_before.length > 0) {
-        command += ` --insert-before ${args.insert_before.map((ib) => `'${ib}'`).join(" ")}`;
+        command += ` --insert-before ${args.insert_before.map((ib: string) => `'${ib}'`).join(" ")}`;
       }
       if (args.insert_after && args.insert_after.length > 0) {
-        command += ` --insert-after ${args.insert_after.map((ia) => `'${ia}'`).join(" ")}`;
+        command += ` --insert-after ${args.insert_after.map((ia: string) => `'${ia}'`).join(" ")}`;
       }
 
       if (
@@ -474,7 +467,7 @@ export async function startJujutsuMcpServer() {
         return {
           content: [
             {
-              type: "text",
+              type: "text" as const,
               text: "Error: At least one of --source, --branch, --revisions, --destination, --insert-before, or --insert-after must be provided.",
             },
           ],
@@ -483,11 +476,10 @@ export async function startJujutsuMcpServer() {
       const result = await executeJjCommand(command, args.workingDirectory);
       return { content: [{ type: "text", text: result }] };
     },
-  );
-
-  server.registerTool(
-    "jj_git_push",
-    {
+  },
+  {
+    name: "jj_git_push",
+    definition: {
       title: "Jujutsu Git Push",
       description: "Push to a Git remote.",
       inputSchema: z.object({
@@ -517,7 +509,7 @@ export async function startJujutsuMcpServer() {
           .array(z.string())
           .optional()
           .describe(
-            "Specify a new bookmark name and a revision to push under that name, e.g. \'--named myfeature=@\'",
+            "Specify a new bookmark name and a revision to push under that name, e.g. '--named myfeature=@'",
           ),
         all: z
           .boolean()
@@ -547,22 +539,22 @@ export async function startJujutsuMcpServer() {
           .describe("Absolute path to the repository."),
       }).shape,
     },
-    async (args) => {
+    handler: async (args: any) => {
       let command = "git push";
       if (args.remote) {
         command += ` '${args.remote}'`;
       }
       if (args.revisions && args.revisions.length > 0) {
-        command += ` -r ${args.revisions.map((r) => `'${r}'`).join(" ")}`;
+        command += ` -r ${args.revisions.map((r: string) => `'${r}'`).join(" ")}`;
       }
       if (args.bookmark && args.bookmark.length > 0) {
-        command += ` -B ${args.bookmark.map((b) => `'${b}'`).join(" ")}`;
+        command += ` -B ${args.bookmark.map((b: string) => `'${b}'`).join(" ")}`;
       }
       if (args.change && args.change.length > 0) {
-        command += ` --change ${args.change.map((c) => `'${c}'`).join(" ")}`;
+        command += ` --change ${args.change.map((c: string) => `'${c}'`).join(" ")}`;
       }
       if (args.named && args.named.length > 0) {
-        command += ` --named ${args.named.map((n) => `'${n}'`).join(" ")}`;
+        command += ` --named ${args.named.map((n: string) => `'${n}'`).join(" ")}`;
       }
       if (args.all) {
         command += " --all";
@@ -588,11 +580,10 @@ export async function startJujutsuMcpServer() {
       const result = await executeJjCommand(command, args.workingDirectory);
       return { content: [{ type: "text", text: result }] };
     },
-  );
-
-  server.registerTool(
-    "jj_git_fetch",
-    {
+  },
+  {
+    name: "jj_git_fetch",
+    definition: {
       title: "Jujutsu Git Fetch",
       description: "Fetch from a Git remote.",
       inputSchema: z.object({
@@ -600,13 +591,13 @@ export async function startJujutsuMcpServer() {
           .array(z.string())
           .optional()
           .describe(
-            "The remote to fetch from (only named remotes are supported, can be repeated). This defaults to the `git.fetch` setting. If that is not configured, and if there are multiple remotes, the remote named \"origin\" will be used. By default, the specified remote names matches exactly. Use a [string pattern], e.g. `--remote \'glob:*\'`, to select remotes using patterns.",
+            "The remote to fetch from (only named remotes are supported, can be repeated). This defaults to the `git.fetch` setting. If that is not configured, and if there are multiple remotes, the remote named \"origin\" will be used. By default, the specified remote names matches exactly. Use a [string pattern], e.g. `--remote 'glob:*'`, to select remotes using patterns.",
           ),
         branch: z
           .array(z.string())
           .optional()
           .describe(
-            "Fetch only some of the branches. By default, the specified name matches exactly. Use `glob:` prefix to expand `*` as a glob, e.g. `--branch \'glob:push-*\'. Other wildcard characters such as `?` are *not* supported.",
+            "Fetch only some of the branches. By default, the specified name matches exactly. Use `glob:` prefix to expand `*` as a glob, e.g. `--branch 'glob:push-*'. Other wildcard characters such as `?` are *not* supported.",
           ),
         all_remotes: z.boolean().optional().describe("Fetch from all remotes"),
         workingDirectory: z
@@ -615,13 +606,13 @@ export async function startJujutsuMcpServer() {
           .describe("Absolute path to the repository."),
       }).shape,
     },
-    async (args) => {
+    handler: async (args: any) => {
       let command = "git fetch";
       if (args.remote && args.remote.length > 0) {
-        command += ` ${args.remote.map((r) => `'${r}'`).join(" ")}`;
+        command += ` ${args.remote.map((r: string) => `'${r}'`).join(" ")}`;
       }
       if (args.branch && args.branch.length > 0) {
-        command += ` --branch ${args.branch.map((b) => `'${b}'`).join(" ")}`;
+        command += ` --branch ${args.branch.map((b: string) => `'${b}'`).join(" ")}`;
       }
       if (args.all_remotes) {
         command += " --all-remotes";
@@ -629,7 +620,60 @@ export async function startJujutsuMcpServer() {
       const result = await executeJjCommand(command, args.workingDirectory);
       return { content: [{ type: "text", text: result }] };
     },
-  );
+  },
+];
+
+const RESOURCES: Resource[] = [
+  {
+    name: "info",
+    uri: "jujutsu://info",
+    definition: {
+      title: "Jujutsu Info",
+      description: "General information about the Jujutsu repository.",
+      mime_type: "text/plain",
+    },
+    handler: async (uri: URL) => {
+      const status = await executeJjCommand("status", ".");
+      const log = await executeJjCommand(
+        "log -n 5 --template='builtin_log_compact_full_description'",
+        ".",
+      );
+      return {
+        contents: [
+          {
+            uri: uri.href,
+            type: "text",
+            text: `Jujutsu Repository Info:\n\nStatus:\n${status}\n\nRecent Log:\n${log}`,
+          },
+        ],
+      };
+    },
+  },
+];
+
+export async function startJujutsuMcpServer() {
+  const server = new McpServer({
+    name: "jujutsu",
+    version: "1.0.0", // Added missing version property
+    description:
+      "A Model Context Protocol server for interacting with Jujutsu version control.",
+    resources: [], // Removed resources from constructor
+  });
+
+  // Register all resources using the RESOURCES constant
+  for (const resource of RESOURCES) {
+    server.registerResource(
+      resource.name,
+      resource.uri,
+      resource.definition,
+      resource.handler,
+    );
+  }
+
+  // Register all tools using the TOOLS constant
+  for (const tool of TOOLS) {
+    server.registerTool(tool.name, tool.definition, tool.handler);
+  }
 
   return server;
 }
