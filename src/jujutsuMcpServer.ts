@@ -70,7 +70,7 @@ export async function startJujutsuMcpServer() {
           .string()
           .optional()
           .describe(
-            "A template to use for the output. The valid values are: [builtin_log_compact_full_description, builtin_log_detailed]",
+            "A template to use for the output. The valid values are: [builtin_config_list, builtin_config_list_detailed, builtin_draft_commit_description, builtin_log_comfortable, builtin_log_compact, builtin_log_compact_full_description, builtin_log_detailed, builtin_log_node, builtin_log_node_ascii, builtin_log_oneline, builtin_op_log_comfortable, builtin_op_log_compact, builtin_op_log_node, builtin_op_log_node_ascii, builtin_op_log_oneline, commit_summary_separator, default_commit_description, description_placeholder, email_placeholder, git_format_patch_email_headers, name_placeholder]. Prefer `builtin_log_compact_full_description` as it contains the full commit message",
           ),
         workingDirectory: z
           .string()
