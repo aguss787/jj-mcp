@@ -2,9 +2,9 @@
   "name": "jujutsu-mcp-server",
   "version": "1.0.0",
   "description": "An MCP server for interacting with Jujutsu version control - Updated by Gemini",
-  "main": "dist/bundle.js",
+  "main": "dist/index.js",
   "bin": {
-    "jj-mcp": "dist/bundle.js"
+    "jj-mcp": "dist/index.js"
   },
   "scripts": {
     "start": "ts-node src/index.ts",
