@@ -149,4 +149,38 @@ describe("startJujutsuMcpServer", () => {
     );
     expect(result).toEqual({ content: [{ type: "text", text: "" }] });
   });
+
+  test("should register jj_bookmark_set tool", () => {
+    expect(mockRegisterTool).toHaveBeenCalledWith(
+      "jj_bookmark_set",
+      expect.any(Object),
+      expect.any(Function),
+    );
+  });
+
+  test("should handle jj_bookmark_set tool request", async () => {
+    const jjBookmarkSetRegistration = mockRegisterTool.mock.calls.find(
+      (call: any[]) => call[0] === "jj_bookmark_set",
+    );
+
+    if (!jjBookmarkSetRegistration) {
+      throw new Error("jj_bookmark_set tool was not registered.");
+    }
+
+    const jjBookmarkSetHandler = jjBookmarkSetRegistration[2];
+
+    const input = {
+      names: ["my-bookmark"],
+      revision_id: "abcde",
+      allow_backwards: true,
+      workingDirectory: "/path/to/repo",
+    };
+    const result = await jjBookmarkSetHandler(input);
+
+    expect(executeJjCommand).toHaveBeenCalledWith(
+      `bookmark set 'my-bookmark' -r 'abcde' --allow-backwards`,
+      "/path/to/repo",
+    );
+    expect(result).toEqual({ content: [{ type: "text", text: "" }] });
+  });
 });

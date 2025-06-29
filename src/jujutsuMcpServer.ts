@@ -220,6 +220,42 @@ const TOOLS: Tool[] = [
     },
   },
   {
+    name: "jj_bookmark_set",
+    definition: {
+      title: "Jujutsu Bookmark Set",
+      description: "Create or update a bookmark to point to a certain commit.",
+      inputSchema: z.object({
+        names: z.array(z.string()).min(1).describe("The bookmarks to update."),
+        revision_id: z
+          .string()
+          .optional()
+          .describe("The bookmark\'s target revision."),
+        allow_backwards: z
+          .boolean()
+          .optional()
+          .describe("Allow moving the bookmark backwards or sideways."),
+        workingDirectory: z
+          .string()
+          .min(1)
+          .describe("Absolute path to the repository."),
+      }).shape,
+    },
+    handler: async (args: any) => {
+      let command = "bookmark set";
+      if (args.names && args.names.length > 0) {
+        command += ` ${args.names.map((n: string) => `'${n}'`).join(" ")}`;
+      }
+      if (args.revision_id) {
+        command += ` -r '${args.revision_id}'`;
+      }
+      if (args.allow_backwards) {
+        command += " --allow-backwards";
+      }
+      const result = await executeJjCommand(command, args.workingDirectory);
+      return { content: [{ type: "text", text: result }] };
+    },
+  },
+  {
     name: "jj_bookmark_move",
     definition: {
       title: "Jujutsu Bookmark Move",
