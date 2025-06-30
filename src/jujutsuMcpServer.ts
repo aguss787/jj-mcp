@@ -63,12 +63,15 @@ const TOOLS: Tool[] = [
           .number()
           .optional()
           .describe("Maximum number of commits to show."),
-        branch: z.string().optional().describe("Branch to show history for."),
+        revisions: z
+          .array(z.string())
+          .optional()
+          .describe("Revisions to show history for."),
         template: z
           .string()
           .optional()
           .describe(
-            "A template to use for the output. The valid values are: [builtin_log_compact_full_description, builtin_log_detailed]",
+            "A template to use for the output. The valid values are: [builtin_config_list, builtin_config_list_detailed, builtin_draft_commit_description, builtin_log_comfortable, builtin_log_compact, builtin_log_compact_full_description, builtin_log_detailed, builtin_log_node, builtin_log_node_ascii, builtin_log_oneline, builtin_op_log_comfortable, builtin_op_log_compact, builtin_op_log_node, builtin_op_log_node_ascii, builtin_op_log_oneline, commit_summary_separator, default_commit_description, description_placeholder, email_placeholder, git_format_patch_email_headers, name_placeholder]",
           ),
         workingDirectory: z
           .string()
@@ -81,8 +84,8 @@ const TOOLS: Tool[] = [
       if (args.limit) {
         command += ` --limit ${args.limit}`;
       }
-      if (args.branch) {
-        command += ` -r '${args.branch}'`;
+      if (args.revisions && args.revisions.length > 0) {
+        command += ` -r '${args.revisions.join(" ")}'`;
       }
       if (args.template) {
         command += ` -T '${args.template}'`;
