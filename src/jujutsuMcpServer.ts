@@ -317,6 +317,10 @@ const TOOLS: Tool[] = [
           .describe(
             "The revision to show the diff for. Defaults to the working copy if not provided.",
           ),
+        git: z
+          .boolean()
+          .default(true)
+          .describe("Use git format for the diff output. Enabled by default."),
         workingDirectory: z
           .string()
           .min(1)
@@ -325,10 +329,11 @@ const TOOLS: Tool[] = [
     },
     handler: async (args: any) => {
       const revision_id = args.revision_id;
-      const result = await executeJjCommand(
-        `diff -r "${revision_id}"`,
-        args.workingDirectory,
-      );
+      let command = `diff -r "${revision_id}"`;
+      if (args.git !== false) {
+        command += " --git";
+      }
+      const result = await executeJjCommand(command, args.workingDirectory);
       return { content: [{ type: "text", text: result }] };
     },
   },

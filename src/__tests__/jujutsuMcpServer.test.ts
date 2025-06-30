@@ -183,4 +183,87 @@ describe("startJujutsuMcpServer", () => {
     );
     expect(result).toEqual({ content: [{ type: "text", text: "" }] });
   });
+
+  test("should register jj_diff tool", () => {
+    expect(mockRegisterTool).toHaveBeenCalledWith(
+      "jj_diff",
+      expect.any(Object),
+      expect.any(Function),
+    );
+  });
+
+  test("should handle jj_diff tool request with git flag true (explicit)", async () => {
+    const jjDiffRegistration = mockRegisterTool.mock.calls.find(
+      (call: any[]) => call[0] === "jj_diff",
+    );
+
+    if (!jjDiffRegistration) {
+      throw new Error("jj_diff tool was not registered.");
+    }
+
+    const jjDiffHandler = jjDiffRegistration[2];
+
+    const input = {
+      revision_id: "@",
+      git: true,
+      workingDirectory: "/path/to/repo",
+    };
+    const result = await jjDiffHandler(input);
+
+    expect(executeJjCommand).toHaveBeenCalledWith(
+      `diff -r "@" --git`,
+      "/path/to/repo",
+    );
+    expect(result).toEqual({ content: [{ type: "text", text: "" }] });
+  });
+
+  test("should handle jj_diff tool request with git flag false (explicit)", async () => {
+    const jjDiffRegistration = mockRegisterTool.mock.calls.find(
+      (call: any[]) => call[0] === "jj_diff",
+    );
+
+    if (!jjDiffRegistration) {
+      throw new Error("jj_diff tool was not registered.");
+    }
+
+    const jjDiffHandler = jjDiffRegistration[2];
+
+    const input = {
+      revision_id: "@",
+      git: false,
+      workingDirectory: "/path/to/repo",
+    };
+    const result = await jjDiffHandler(input);
+
+    expect(executeJjCommand).toHaveBeenCalledWith(
+      `diff -r "@"`,
+      "/path/to/repo",
+    );
+    expect(result).toEqual({ content: [{ type: "text", text: "" }] });
+  });
+
+  test("should handle jj_diff tool request with git flag missing (defaults to true)", async () => {
+    const jjDiffRegistration = mockRegisterTool.mock.calls.find(
+      (call: any[]) => call[0] === "jj_diff",
+    );
+
+    if (!jjDiffRegistration) {
+      throw new Error("jj_diff tool was not registered.");
+    }
+
+    const jjDiffHandler = jjDiffRegistration[2];
+
+    const input = {
+      revision_id: "abc123",
+      workingDirectory: "/path/to/repo",
+      // git flag is intentionally missing
+    };
+    const result = await jjDiffHandler(input);
+
+    expect(executeJjCommand).toHaveBeenCalledWith(
+      `diff -r "abc123" --git`,
+      "/path/to/repo",
+    );
+    expect(result).toEqual({ content: [{ type: "text", text: "" }] });
+  });
 });
