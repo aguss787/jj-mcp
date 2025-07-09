@@ -3,11 +3,12 @@ import { startJujutsuMcpServer } from "../jujutsuMcpServer";
 import { executeJjCommand } from "../utils";
 
 const mockRegisterTool = jest.fn();
+const mockRegisterResource = jest.fn();
 
 jest.mock("@modelcontextprotocol/sdk/server/mcp.js", () => ({
   McpServer: jest.fn(() => ({
     registerTool: mockRegisterTool,
-    registerResource: jest.fn(), // Mock registerResource as well if it's called
+    registerResource: mockRegisterResource,
     name: "mock-jujutsu",
     version: "1.0.0",
     description: "Mock Jujutsu MCP Server",
@@ -20,6 +21,12 @@ jest.mock("../utils", () => ({
     if (command.includes("status")) {
       return Promise.resolve("Mocked status output");
     }
+    if (command.includes("--version")) {
+      return Promise.resolve("jj 0.28.2");
+    }
+    if (command.includes("log")) {
+      return Promise.resolve("Mocked log output");
+    }
     return Promise.resolve("");
   }),
   as_base64_cmd: jest.requireActual("../utils").as_base64_cmd,
@@ -29,6 +36,7 @@ describe("startJujutsuMcpServer", () => {
   beforeEach(async () => {
     // Reset the mock before each test
     mockRegisterTool.mockClear();
+    mockRegisterResource.mockClear();
     (McpServer as jest.Mock).mockClear();
 
     await startJujutsuMcpServer();
@@ -265,5 +273,88 @@ describe("startJujutsuMcpServer", () => {
       "/path/to/repo",
     );
     expect(result).toEqual({ content: [{ type: "text", text: "" }] });
+  });
+
+  // Resource tests
+  test("should register info resource", () => {
+    expect(mockRegisterResource).toHaveBeenCalledWith(
+      "info",
+      "jujutsu://info",
+      expect.objectContaining({
+        title: "Jujutsu Info",
+        description: "General information about the Jujutsu repository.",
+        mime_type: "text/plain",
+      }),
+      expect.any(Function),
+    );
+  });
+
+  test("should register version resource", () => {
+    expect(mockRegisterResource).toHaveBeenCalledWith(
+      "version",
+      "jujutsu://version",
+      expect.objectContaining({
+        title: "Jujutsu Version",
+        description: "Get the version of the Jujutsu binary.",
+        mime_type: "text/plain",
+      }),
+      expect.any(Function),
+    );
+  });
+
+  test("should handle version resource request", async () => {
+    const versionResourceRegistration = mockRegisterResource.mock.calls.find(
+      (call: any[]) => call[0] === "version",
+    );
+
+    if (!versionResourceRegistration) {
+      throw new Error("version resource was not registered.");
+    }
+
+    const versionResourceHandler = versionResourceRegistration[3];
+    const mockUri = new URL("jujutsu://version");
+
+    const result = await versionResourceHandler(mockUri);
+
+    expect(executeJjCommand).toHaveBeenCalledWith("--version", ".");
+    expect(result).toEqual({
+      contents: [
+        {
+          uri: "jujutsu://version",
+          type: "text",
+          text: "jj 0.28.2",
+        },
+      ],
+    });
+  });
+
+  test("should handle info resource request", async () => {
+    const infoResourceRegistration = mockRegisterResource.mock.calls.find(
+      (call: any[]) => call[0] === "info",
+    );
+
+    if (!infoResourceRegistration) {
+      throw new Error("info resource was not registered.");
+    }
+
+    const infoResourceHandler = infoResourceRegistration[3];
+    const mockUri = new URL("jujutsu://info");
+
+    const result = await infoResourceHandler(mockUri);
+
+    expect(executeJjCommand).toHaveBeenCalledWith("status", ".");
+    expect(executeJjCommand).toHaveBeenCalledWith(
+      "log --limit 5 -T 'builtin_log_compact_full_description'",
+      ".",
+    );
+    expect(result).toEqual({
+      contents: [
+        {
+          uri: "jujutsu://info",
+          type: "text",
+          text: "Jujutsu Repository Info:\n\nStatus:\nMocked status output\n\nRecent Log:\nMocked log output",
+        },
+      ],
+    });
   });
 });
