@@ -783,31 +783,6 @@ const TOOLS: Tool[] = [
 
 const RESOURCES: Resource[] = [
   {
-    name: "info",
-    uri: "jujutsu://info",
-    definition: {
-      title: "Jujutsu Info",
-      description: "General information about the Jujutsu repository.",
-      mime_type: "text/plain",
-    },
-    handler: async (uri: URL) => {
-      const status = await executeJjCommand("status", ".");
-      const log = await executeJjCommand(
-        "log --limit 5 -T 'builtin_log_compact_full_description'",
-        ".",
-      );
-      return {
-        contents: [
-          {
-            uri: uri.href,
-            type: "text",
-            text: `Jujutsu Repository Info:\n\nStatus:\n${status}\n\nRecent Log:\n${log}`,
-          },
-        ],
-      };
-    },
-  },
-  {
     name: "version",
     uri: "jujutsu://version",
     definition: {
